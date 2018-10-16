@@ -1,0 +1,28 @@
+log() {
+    echo "$@" >&2
+}
+
+die() {
+    log "Error:" "$@"
+    exit 99
+}
+
+contains() {
+    [ "$1" != "${1#*"$2"}" ]
+}
+
+startswith() {
+    [ "$1" != "${1#"$2"}" ]
+}
+
+endswith() {
+    [ "$1" != "${1%"$2"}" ]
+}
+
+make() {
+    echo "MAKE ${REDO_DEPTH}" "$*" >&2
+    command make "$@"
+    rv=$?
+    echo "MAKE ${REDO_DEPTH}" "$1 (done)" >&2
+    return $?
+}

@@ -713,7 +713,9 @@ $$($(2)_TARGET_BUILD):	$$($(2)_TARGET_CONFIGURE)
 # dependency by using |.
 
 $(1)-configure:			$$($(2)_TARGET_CONFIGURE)
-$$($(2)_TARGET_CONFIGURE):	| $$($(2)_FINAL_DEPENDENCIES)
+
+# NOTE(apenwarr): removed this because dependencies are now moved to redo
+#$$($(2)_TARGET_CONFIGURE):	| $$($(2)_FINAL_DEPENDENCIES)
 
 $$($(2)_TARGET_SOURCE) $$($(2)_TARGET_RSYNC): | dirs prepare
 $$($(2)_TARGET_SOURCE) $$($(2)_TARGET_RSYNC): | dependencies

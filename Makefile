@@ -83,8 +83,9 @@ _all:
 else # umask / $(CURDIR) / $(O)
 
 # This is our default rule, so must come first
-all:
 .PHONY: all
+all:
+	+redo all
 
 # Set and export the version string
 export BR2_VERSION := 2018.11-git
@@ -129,7 +130,7 @@ export BR2_VERSION_FULL := $(BR2_VERSION)$(shell $(TOPDIR)/support/scripts/setlo
 # List of targets and target patterns for which .config doesn't need to be read in
 noconfig_targets := menuconfig nconfig gconfig xconfig config oldconfig randconfig \
 	defconfig %_defconfig allyesconfig allnoconfig alldefconfig syncconfig release \
-	randpackageconfig allyespackageconfig allnopackageconfig \
+	randpackageconfig allyespackageconfig allnopackageconfig all \
 	print-version olddefconfig distclean manual manual-% check-package
 
 # Some global targets do not trigger a build, but are used to collect
@@ -141,7 +142,7 @@ noconfig_targets := menuconfig nconfig gconfig xconfig config oldconfig randconf
 # We're building in two situations: when MAKECMDGOALS is empty
 # (default target is to build), or when MAKECMDGOALS contains
 # something else than one of the nobuild_targets.
-nobuild_targets := source %-source \
+nobuild_targets := all source %-source \
 	legal-info %-legal-info external-deps _external-deps \
 	clean distclean help show-targets graph-depends \
 	%-graph-depends %-show-depends %-show-version \
@@ -486,8 +487,6 @@ export BASE_DIR
 #
 ################################################################################
 
-all: world
-
 # Include legacy before the other things, because package .mk files
 # may rely on it.
 include Makefile.legacy
@@ -517,7 +516,23 @@ ifneq ($(PACKAGE_OVERRIDE_FILE),)
 -include $(PACKAGE_OVERRIDE_FILE)
 endif
 
+ifneq ($(ONE_PACKAGE_FILE),)
+# FIXME: these packages define variables silently depended upon by other packages.
+# Eventually, it would be better to explicitly include .mk files depended upon by
+# any given package from that package itself, so we can avoid hardcoding this list.
+include $(filter-out $(ONE_PACKAGE_FILE), \
+	  package/lzip/lzip.mk \
+	  package/autoconf/autoconf.mk \
+	  package/automake/automake.mk \
+	  package/gettext/gettext.mk \
+	  package/pkgconf/pkgconf.mk \
+	  package/mtd/mtd.mk \
+	  $(sort $(wildcard package/linux-headers/*.mk package/gcc/*.mk)) \
+)
+include $(filter-out toolchain/% package/gcc/%, $(ONE_PACKAGE_FILE))
+else
 include $(sort $(wildcard package/*/*.mk))
+endif
 
 include boot/common.mk
 include linux/linux.mk
@@ -694,13 +709,12 @@ endef
 TARGET_FINALIZE_HOOKS += PURGE_LOCALES
 endif
 
-$(TARGETS_ROOTFS): target-finalize
-
 # Avoid the rootfs name leaking down the dependency chain
 target-finalize: ROOTFS=
 
 .PHONY: target-finalize
-target-finalize: $(PACKAGES)
+target-finalize:
+	+redo-ifchange $(PACKAGES)
 	@$(call MESSAGE,"Finalizing target directory")
 	# Check files that are touched by more than one package
 	./support/scripts/check-uniq-files -t target $(BUILD_DIR)/packages-file-list.txt
@@ -868,7 +882,7 @@ else # ifeq ($(BR2_HAVE_DOT_CONFIG),y)
 # rule for it.
 # Also for 'all' we error out and ask the user to configure first.
 .PHONY: linux toolchain
-linux toolchain all: outputmakefile
+linux toolchain: outputmakefile
 	$(error Please configure Buildroot first (e.g. "make menuconfig"))
 	@exit 1
 

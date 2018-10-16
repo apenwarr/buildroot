@@ -1,0 +1,17 @@
+. ./helpers.od
+redo-ifchange package.od helpers.od syncconfig
+
+pkg=${2##*/}
+if endswith "$2" ".host"; then
+    dir=${2%.host}
+    host=.host
+    tpkg=${pkg%.host}
+    pkg=host-$tpkg
+else
+    dir=$2
+    host=
+    tpkg=$pkg
+fi
+makefile=$dir/$tpkg.mk
+[ -e "$makefile" ] || die "$makefile: no matching makefile found"
+redo-ifchange "$makefile"

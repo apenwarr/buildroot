@@ -56,7 +56,11 @@ define ROOTFS_COMMON_UNTAR_CMD
 endef
 
 .PHONY: rootfs-common
-rootfs-common: $(ROOTFS_COMMON_TAR)
+rootfs-common:
+	+redo-ifchange rootfs-common
+
+.PHONY: _rootfs-common
+_rootfs-common: $(ROOTFS_COMMON_TAR)
 
 # Emulate being in a filesystem, so that we can have our own TARGET_DIR.
 ROOTFS_COMMON_TARGET_DIR = $(FS_DIR)/target
@@ -67,7 +71,8 @@ ROOTFS_COMMON_DEPENDENCIES = \
 
 $(ROOTFS_COMMON_TAR): ROOTFS=COMMON
 $(ROOTFS_COMMON_TAR): FAKEROOT_SCRIPT=$(FS_DIR)/fakeroot.fs
-$(ROOTFS_COMMON_TAR): $(ROOTFS_COMMON_DEPENDENCIES) target-finalize
+$(ROOTFS_COMMON_TAR): target-finalize
+	+redo-ifchange $(ROOTFS_COMMON_DEPENDENCIES)
 	@$(call MESSAGE,"Generating common rootfs tarball")
 	rm -rf $(FS_DIR)
 	mkdir -p $(FS_DIR)
@@ -141,7 +146,8 @@ endif
 
 $$(BINARIES_DIR)/rootfs.$(1): ROOTFS=$(2)
 $$(BINARIES_DIR)/rootfs.$(1): FAKEROOT_SCRIPT=$$(ROOTFS_$(2)_DIR)/fakeroot
-$$(BINARIES_DIR)/rootfs.$(1): $$(ROOTFS_$(2)_DEPENDENCIES)
+$$(BINARIES_DIR)/rootfs.$(1):
+	+redo-ifchange $$(filter-out rootfs-common,$$(ROOTFS_$(2)_DEPENDENCIES))
 	@$$(call MESSAGE,"Generating root filesystem image rootfs.$(1)")
 	rm -rf $$(ROOTFS_$(2)_DIR)
 	mkdir -p $$(ROOTFS_$(2)_DIR)
